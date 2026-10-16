@@ -1,58 +1,69 @@
-// ─────────────────────────────────────────────────────────────
-// TODO: Wire this form to a mutation.
-//
-// Right now handleSubmit only logs to the console — the thread is never posted,
-// and the list never updates.
-//
-// Requirements (the auto-grader checks these):
-//   • import { useMutation, useQueryClient } from "@tanstack/react-query"
-//   • const queryClient = useQueryClient();
-//   • const mutation = useMutation({
-//       mutationFn: createThread,            // pass the reference, not createThread()
-//       onSuccess: () => {
-//         queryClient.invalidateQueries({ queryKey: ["threads"] });  // refetch the list
-//         setTitle(""); setBody("");                                 // reset the form
-//       },
-//     });
-//   • In handleSubmit, call: mutation.mutate({ title, body })
-//   • Disable the submit button while mutation.isPending is true (label it "Posting…").
-//   • Render an inline error message when mutation.isError is true
-//       (try submitting with an empty title — the server returns 400).
-//
-// Verify in DevTools → Network: a POST /api/threads (201) is followed immediately
-// by a GET /api/threads refetch, and the new thread appears at the top with no reload.
-// ─────────────────────────────────────────────────────────────
+
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createThread } from "../services/threads.service";
 
-export default function CreateThreadForm() {
+function CreateThreadForm() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
-  // TODO: const queryClient = useQueryClient();
-  // TODO: const mutation = useMutation({ mutationFn: createThread, onSuccess, onError });
+  const queryClient = useQueryClient();
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    // TODO: replace this with mutation.mutate({ title, body })
-    console.log("submit", { title, body });
+  const mutation = useMutation({
+    mutationFn: createThread,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["threads"],
+      });
+
+      setTitle("");
+      setBody("");
+    },
+  });
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    mutation.mutate({ title, body });
   }
 
   return (
-    <form className="form" onSubmit={handleSubmit}>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Title"
-      />
-      <textarea
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        placeholder="What's on your mind?"
-      />
-      {/* TODO: disable while mutation.isPending; show "Posting…" as the label */}
-      <button type="submit">Post thread</button>
-      {/* TODO: render <p className="err">{mutation.error.message}</p> when mutation.isError */}
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label htmlFor="thread-title">Title</label>
+        <input
+          id="thread-title"
+          type="text"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="Enter thread title"
+          required
+        />
+      </div>
+
+      <div>
+        <label htmlFor="thread-body">Body</label>
+        <textarea
+          id="thread-body"
+          value={body}
+          onChange={(event) => setBody(event.target.value)}
+          placeholder="Write your thread..."
+          required
+        />
+      </div>
+
+      <button type="submit" disabled={mutation.isPending}>
+        {mutation.isPending ? "Posting..." : "Post thread"}
+      </button>
+
+      {mutation.isError && (
+        <p role="alert" className="err">
+          {mutation.error?.response?.data?.message ||
+            mutation.error?.message ||
+            "Failed to create thread. Please try again."}
+        </p>
+      )}
     </form>
   );
 }
+
+export default CreateThreadForm;
