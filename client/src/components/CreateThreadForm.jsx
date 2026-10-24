@@ -8,7 +8,7 @@
 //   • import { useMutation, useQueryClient } from "@tanstack/react-query"
 //   • const queryClient = useQueryClient();
 //   • const mutation = useMutation({
-//       mutationFn: createThread,            // pass the reference, not createThread()
+//       mutationFn: createThread,            // pass the reference, not
 //       onSuccess: () => {
 //         queryClient.invalidateQueries({ queryKey: ["threads"] });  // refetch the list
 //         setTitle(""); setBody("");                                 // reset the form
@@ -22,20 +22,35 @@
 // Verify in DevTools → Network: a POST /api/threads (201) is followed immediately
 // by a GET /api/threads refetch, and the new thread appears at the top with no reload.
 // ─────────────────────────────────────────────────────────────
+
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createThread } from "../services/threads.service";
 
 export default function CreateThreadForm() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
-  // TODO: const queryClient = useQueryClient();
-  // TODO: const mutation = useMutation({ mutationFn: createThread, onSuccess, onError });
+  // TODO: Get the query client to manage cached queries.
+  const queryClient = useQueryClient();
+
+  // TODO: Create a mutation to post a new thread.
+  const mutation = useMutation({
+    mutationFn: createThread,
+
+    // TODO: Refresh the threads list and reset the form after success.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["threads"] });
+      setTitle("");
+      setBody("");
+    },
+  });
 
   function handleSubmit(e) {
     e.preventDefault();
-    // TODO: replace this with mutation.mutate({ title, body })
-    console.log("submit", { title, body });
+
+    // TODO: Submit the form data using the mutation.
+    mutation.mutate({ title, body });
   }
 
   return (
@@ -45,14 +60,24 @@ export default function CreateThreadForm() {
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Title"
       />
+
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder="What's on your mind?"
       />
-      {/* TODO: disable while mutation.isPending; show "Posting…" as the label */}
-      <button type="submit">Post thread</button>
-      {/* TODO: render <p className="err">{mutation.error.message}</p> when mutation.isError */}
+
+      {/* TODO: Disable the button while the mutation is pending. */}
+      <button type="submit" disabled={mutation.isPending}>
+        {mutation.isPending ? "Posting…" : "Post thread"}
+      </button>
+
+      {/* TODO: Display an error message if posting fails. */}
+      {mutation.isError && (
+        <p className="err">
+          {mutation.error?.message || "Failed to post thread. Please try again."}
+        </p>
+      )}
     </form>
   );
 }
