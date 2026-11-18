@@ -8,6 +8,7 @@ export async function getThreads() {
 }
 
 export async function createThread(newThread) {
+  // const newThread = { title, body }
   // newThread = { title, body }
   const response = await apiClient.post("/api/threads", newThread);
   return response.data;
